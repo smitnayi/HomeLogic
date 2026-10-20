@@ -1,0 +1,201 @@
+// ============================================
+//   HomeLogic - Smart Home Simulation
+//   A full day in a 2BHK apartment
+// ============================================
+
+// ---- Devices ----
+DEVICE hall_light;
+DEVICE hall_fan;
+DEVICE bedroom_light;
+DEVICE bedroom_fan;
+DEVICE kitchen_light;
+DEVICE porch_light;
+DEVICE bathroom_light;
+DEVICE ac_unit;
+
+// ---- Sensors ----
+SENSOR temperature;
+SENSOR humidity;
+
+// ---- Variables ----
+VAR temp_limit = 32;
+VAR humid_limit = 70;
+VAR fan_speed = 0;
+VAR hour = 0;
+VAR alert_count = 0;
+
+// ---- Routines ----
+ROUTINE morning_setup
+{
+    SHOW "--- Morning Routine ---";
+    SWITCHON hall_light;
+    SWITCHON kitchen_light;
+    SWITCHON hall_fan;
+    DIM bedroom_light 40;
+    SWITCHOFF porch_light;
+    SHOW "Good morning! Lights are on, fan started.";
+}
+
+ROUTINE night_mode
+{
+    SHOW "--- Night Routine ---";
+    SWITCHOFF hall_light;
+    SWITCHOFF kitchen_light;
+    SWITCHOFF hall_fan;
+    DIM bedroom_light 10;
+    SWITCHON porch_light;
+    SWITCHOFF ac_unit;
+    SHOW "Good night! Everything dimmed/off, porch light on.";
+}
+
+ROUTINE all_off
+{
+    SHOW "--- Emergency: All Off ---";
+    SWITCHOFF hall_light;
+    SWITCHOFF hall_fan;
+    SWITCHOFF bedroom_light;
+    SWITCHOFF bedroom_fan;
+    SWITCHOFF kitchen_light;
+    SWITCHOFF porch_light;
+    SWITCHOFF bathroom_light;
+    SWITCHOFF ac_unit;
+    SHOW "All devices turned off.";
+}
+
+// ---- Schedules (AT rules) ----
+AT 06:30 { RUN morning_setup; }
+AT 22:00 { RUN night_mode; }
+AT 23:59 { RUN all_off; }
+
+AT 07:00
+{
+    SHOW "Bathroom light on for morning routine.";
+    SWITCHON bathroom_light;
+}
+
+AT 07:30
+{
+    SWITCHOFF bathroom_light;
+    SHOW "Bathroom light off. Heading out!";
+}
+
+AT 18:00
+{
+    SHOW "Evening: Switching on hall and kitchen lights.";
+    SWITCHON hall_light;
+    SWITCHON kitchen_light;
+    DIM hall_light 80;
+}
+
+// ---- Start of simulation ----
+SHOW "========================================";
+SHOW "   Welcome to Smart Home Simulator";
+SHOW "========================================";
+SHOW "";
+
+// ---- Read sensor values at runtime ----
+SHOW "Please provide current sensor readings:";
+SENSE temperature;
+SENSE humidity;
+
+SHOW "";
+SHOW "Current readings:";
+SHOW temperature;
+SHOW humidity;
+
+// ---- Temperature logic ----
+WHEN (temperature > temp_limit AND NOT (temperature > 50))
+{
+    SHOW "It is hot! Starting cooling system.";
+    SWITCHON bedroom_fan;
+    DIM bedroom_fan 75;
+
+    WHEN (temperature > 40)
+    {
+        SHOW "Extreme heat detected! Turning on AC.";
+        SWITCHON ac_unit;
+    }
+    OTHERWISE
+    {
+        SHOW "Fan should be enough for now.";
+    }
+}
+OTHERWISE
+{
+    SHOW "Temperature is comfortable. No cooling needed.";
+    SWITCHOFF bedroom_fan;
+    SWITCHOFF ac_unit;
+}
+
+// ---- Humidity logic ----
+WHEN (humidity > humid_limit)
+{
+    SHOW "High humidity detected!";
+    SWITCHON hall_fan;
+    alert_count = alert_count + 1;
+}
+OTHERWISE
+{
+    SHOW "Humidity is normal.";
+}
+
+// ---- Combined check ----
+WHEN (temperature > temp_limit AND humidity > humid_limit)
+{
+    SHOW "ALERT: Both temperature and humidity are high!";
+    SWITCHON ac_unit;
+    SWITCHON hall_fan;
+    SWITCHON bedroom_fan;
+    alert_count = alert_count + 1;
+}
+
+// ---- User sets custom fan speed ----
+SHOW "";
+SHOW "Set your preferred fan speed (0-100):";
+INPUT fan_speed;
+
+WHEN (fan_speed > 0 AND NOT (fan_speed > 100))
+{
+    DIM hall_fan fan_speed;
+    SHOW "Fan speed set.";
+    SHOW fan_speed;
+}
+OTHERWISE
+{
+    SHOW "Invalid fan speed. Keeping default.";
+}
+
+// ---- Loop: Blink porch light 3 times (security check) ----
+SHOW "";
+SHOW "Running security light check (3 blinks):";
+REPEAT 3
+{
+    SWITCHON porch_light;
+    SWITCHOFF porch_light;
+    alert_count = alert_count + 1;
+}
+
+SHOW "Security checks done:";
+SHOW alert_count;
+
+// ---- Dim lights for movie time ----
+SHOW "";
+SHOW "Setting up movie mode...";
+DIM hall_light 20;
+DIM bedroom_light 0;
+SWITCHOFF kitchen_light;
+SHOW "Enjoy the movie!";
+
+// ---- Simulate clock progression through the day ----
+SHOW "";
+SHOW "=== Simulating a full day ===";
+
+CLOCK 06:30;
+CLOCK 07:00;
+CLOCK 07:30;
+CLOCK 18:00;
+CLOCK 22:00;
+CLOCK 23:59;
+
+SHOW "";
+SHOW "=== Day simulation complete ===";

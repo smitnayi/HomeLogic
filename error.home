@@ -1,0 +1,12 @@
+DEVICE fan;
+SENSOR temp;
+DEVICE fan;
+SWITCHON temp;
+SWITCHON lamp;
+SENSE fan;
+RUN night;
+AT 25:70 { SWITCHON fan; }
+fan = 5;
+SHOW 10 / ;
+SWITCHOFF fan;
+@
